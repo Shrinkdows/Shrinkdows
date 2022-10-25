@@ -104,6 +104,12 @@ if (Choco) {
   RunWait, powershell -ep bypass -c [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'));choco install ChocolateyGUI
 }
 
+if (PuzzlePack) {
+  UrlDownloadToFile, https://www.chiark.greenend.org.uk/~sgtatham/puzzles/puzzles-installer.msi, %A_Temp%\PuzzlePack.msi
+  RunWait, msiexec /passive /qb /norestart /i "%A_Temp%\PuzzlePack.msi"
+  FileDelete, %A_Temp%\PuzzlePack.msi
+}
+
 GuiControl,,Prog,100
 GuiControl,, Cancel, &Close
 GuiControl, -Disabled, Cancel
