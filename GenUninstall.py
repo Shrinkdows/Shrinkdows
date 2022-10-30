@@ -1,6 +1,6 @@
 import os
 import textwrap
-for dir in os.scandir('.\\scripts'):
+for dir in os.scandir('.\\components'):
   if not dir.name.startswith('.') and dir.is_dir():
     if os.path.isfile(f"{dir.path}\\uninstprogresstext.txt"):
       with open(f"{dir.path}\\uninstprogresstext.txt", "r") as file:

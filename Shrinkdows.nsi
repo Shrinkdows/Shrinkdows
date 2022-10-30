@@ -11,7 +11,10 @@
 ;UMUI Config
 
   !define UMUI_SKIN "blue++"
+  !define UMUI_PAGEBGIMAGE_BMP "${NSISDIR}\Contrib\UltraModernUI\Skins\blue++\PageBG3.bmp"
   !define UMUI_ULTRAMODERN_SMALL
+  !define UMUI_UNIQUEBGIMAGE
+  !define UMUI_UNUNIQUEBGIMAGE
 
   !define UMUI_VERSION "UMUI Beta 1"
   !define /date UMUI_VERBUILD "2.0_%Y-%m-%d"
@@ -34,14 +37,17 @@
   !define UMUI_INFORMATIONPAGE_USE_RICHTEXTFORMAT
   !define UMUI_USE_INSTALLOPTIONSEX
 
-  !define UMUI_SETUPTYPEPAGE_STANDARD
-  !define UMUI_SETUPTYPEPAGE_COMPLETE
+  !define UMUI_SETUPTYPEPAGE_STANDARD "$(UMUI_TEXT_SETUPTYPE_STANDARD_TITLE)"
+  !define UMUI_SETUPTYPEPAGE_COMPLETE "$(UMUI_TEXT_SETUPTYPE_COMPLETE_TITLE)"
   !define UMUI_SETUPTYPEPAGE_DEFAULTCHOICE ${UMUI_STANDARD}
   !define UMUI_SETUPTYPEPAGE_REGISTRY_VALUENAME "SetupType"
+
 
   !define UMUI_SETUPTYPEPAGE_STANDARD_TITLE "Sta${U+200B}ndard"
   !define UMUI_SETUPTYPEPAGE_COMPLETE_TITLE "Com${U+200B}plete"
   !define UMUI_SETUPTYPEPAGE_CUSTOM_TITLE "Cus${U+200B}tom"
+
+  !define MUI_FINISHPAGE_NOAUTOCLOSE
 
   !insertmacro UMUI_DECLARECOMPONENTS_BEGIN
     !system 'python3 GenUMUISectionList.py>sect.nsi'
@@ -97,9 +103,12 @@
   !insertmacro MUI_PAGE_WELCOME
   !insertmacro MUI_PAGE_LICENSE "License.txt"
   !insertmacro UMUI_PAGE_INFORMATION "Info.rtf"
+  !define MUI_PAGE_CUSTOMFUNCTION_LEAVE leave_serial_function
+  !insertmacro UMUI_PAGE_SERIALNUMBER serial_function
   !insertmacro UMUI_PAGE_SETUPTYPE
   !insertmacro MUI_PAGE_DIRECTORY
   !insertmacro MUI_PAGE_COMPONENTS
+  !insertmacro UMUI_PAGE_ADDITIONALTASKS addtasks_function
   !insertmacro UMUI_PAGE_CONFIRM
   !insertmacro MUI_PAGE_INSTFILES
   !insertmacro MUI_PAGE_FINISH
@@ -119,9 +128,18 @@
 ;--------------------------------
 ;Installer Sections
 
+InstType "$(UMUI_TEXT_SETUPTYPE_MINIMAL_TITLE)"
+InstType "$(UMUI_TEXT_SETUPTYPE_STANDARD_TITLE)"
+InstType "$(UMUI_TEXT_SETUPTYPE_COMPLETE_TITLE)"
+
 Section "Create Uninstaller" SecCreateUninstaller
 
-  SectionIn RO
+  SectionIn RO 1 2 3 4
+
+  !insertmacro UMUI_ADDITIONALTASKS_IF_CKECKED STARTUP
+    nsExec::ExecToLog 'wmic /Namespace:\\root\default Path SystemRestore Call CreateRestorePoint "Before Shrinkdows Setup", 100, 7'
+    pop $0
+  !insertmacro UMUI_ADDITIONALTASKS_ENDIF
   
   SetOutPath "$INSTDIR"
   
@@ -172,6 +190,8 @@ SectionEnd
 
 Section "Uninstall"
 
+  SectionIn RO 1 2 3 4
+
   ;ADD YOUR OWN FILES HERE...
 
   !system 'python3 GenUninstall.py>sect.nsi'
@@ -197,5 +217,46 @@ Function "SemiUninst"
   Delete "$INSTDIR\Uninstall.exe"
 
   RMDir "$INSTDIR"
+
+FunctionEnd
+
+Function addtasks_function
+  !insertmacro UMUI_ADDITIONALTASKSPAGE_ADD_TASK MAKERESTOREPOINT 1 "Create a restore point"
+FunctionEnd
+
+Function serial_function
+
+  StrCpy $R0 ""
+  StrCpy $R1 ""
+  StrCpy $R2 "DEV"
+
+    !define UMUI_SERIALNUMBERPAGE_SERIAL_REGISTRY_VALUENAME "RegName"
+  !insertmacro UMUI_SERIALNUMBERPAGE_ADD_LABELEDSERIAL REGNAME 0 "" $R0 "$(UMUI_TEXT_SERIALNUMBER_NAME)"
+    !define UMUI_SERIALNUMBERPAGE_SERIAL_REGISTRY_VALUENAME "Organisation"
+  !insertmacro UMUI_SERIALNUMBERPAGE_ADD_LABELEDSERIAL ORGANISATION 0 "CANBEEMPTY" $R1 "$(UMUI_TEXT_SERIALNUMBER_ORGANIZATION)"
+  !insertmacro UMUI_SERIALNUMBERPAGE_ADD_HLINE
+    !define UMUI_SERIALNUMBERPAGE_SERIAL_REGISTRY_VALUENAME "SerialNumber"
+  !insertmacro UMUI_SERIALNUMBERPAGE_ADD_LABELEDSERIAL SERIAL 335 "TOUPPER|NODASHS" $R2 "$(UMUI_TEXT_SERIALNUMBER_SERIALNUMBER)"
+
+FunctionEnd
+
+Function leave_serial_function
+
+  !insertmacro UMUI_SERIALNUMBER_GET REGNAME R0
+  !insertmacro UMUI_SERIALNUMBER_GET ORGANISATION R1
+  !insertmacro UMUI_SERIALNUMBER_GET SERIAL R2
+  
+  StrCmp $R0 'Joey' ValidName
+  StrCmp $R0 'Just Joey' ValidName
+  StrCmp $R0 'Tech Stuff' ValidName
+  StrCmp $R0 'Jeremiah' ValidName
+  StrCmp $R0 'Windows Server 2003' ValidName
+  MessageBox MB_OK|MB_ICONEXCLAMATION "Name is invalid. Please verify you have entered the serial number correctly."
+  Abort
+
+  ValidName:
+  StrCmp $R2 'DEV00709353' +3
+    MessageBox MB_OK|MB_ICONEXCLAMATION "Serial Number is invalid. Please verify you have entered the serial number correctly."
+    Abort
 
 FunctionEnd
