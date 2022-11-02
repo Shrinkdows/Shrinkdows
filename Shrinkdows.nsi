@@ -103,8 +103,6 @@
   !insertmacro MUI_PAGE_WELCOME
   !insertmacro MUI_PAGE_LICENSE "License.txt"
   !insertmacro UMUI_PAGE_INFORMATION "Info.rtf"
-  !define MUI_PAGE_CUSTOMFUNCTION_LEAVE leave_serial_function
-  !insertmacro UMUI_PAGE_SERIALNUMBER serial_function
   !insertmacro UMUI_PAGE_SETUPTYPE
   !insertmacro MUI_PAGE_DIRECTORY
   !insertmacro MUI_PAGE_COMPONENTS
@@ -132,14 +130,13 @@ InstType "$(UMUI_TEXT_SETUPTYPE_MINIMAL_TITLE)"
 InstType "$(UMUI_TEXT_SETUPTYPE_STANDARD_TITLE)"
 InstType "$(UMUI_TEXT_SETUPTYPE_COMPLETE_TITLE)"
 
-Section "Create Uninstaller" SecCreateUninstaller
+Section "Core files" SecCreateUninstaller
 
   SectionIn RO 1 2 3 4
 
-  !insertmacro UMUI_ADDITIONALTASKS_IF_CKECKED STARTUP
-    nsExec::ExecToLog 'wmic /Namespace:\\root\default Path SystemRestore Call CreateRestorePoint "Before Shrinkdows Setup", 100, 7'
-    pop $0
-  !insertmacro UMUI_ADDITIONALTASKS_ENDIF
+  !system 'python3 GenTaskJobs.py > sect.nsi'
+  !include 'sect.nsi'
+  !system 'del /f /q sect.nsi'
   
   SetOutPath "$INSTDIR"
   
@@ -222,41 +219,4 @@ FunctionEnd
 
 Function addtasks_function
   !insertmacro UMUI_ADDITIONALTASKSPAGE_ADD_TASK MAKERESTOREPOINT 1 "Create a restore point"
-FunctionEnd
-
-Function serial_function
-
-  StrCpy $R0 ""
-  StrCpy $R1 ""
-  StrCpy $R2 "DEV"
-
-    !define UMUI_SERIALNUMBERPAGE_SERIAL_REGISTRY_VALUENAME "RegName"
-  !insertmacro UMUI_SERIALNUMBERPAGE_ADD_LABELEDSERIAL REGNAME 0 "" $R0 "$(UMUI_TEXT_SERIALNUMBER_NAME)"
-    !define UMUI_SERIALNUMBERPAGE_SERIAL_REGISTRY_VALUENAME "Organisation"
-  !insertmacro UMUI_SERIALNUMBERPAGE_ADD_LABELEDSERIAL ORGANISATION 0 "CANBEEMPTY" $R1 "$(UMUI_TEXT_SERIALNUMBER_ORGANIZATION)"
-  !insertmacro UMUI_SERIALNUMBERPAGE_ADD_HLINE
-    !define UMUI_SERIALNUMBERPAGE_SERIAL_REGISTRY_VALUENAME "SerialNumber"
-  !insertmacro UMUI_SERIALNUMBERPAGE_ADD_LABELEDSERIAL SERIAL 335 "TOUPPER|NODASHS" $R2 "$(UMUI_TEXT_SERIALNUMBER_SERIALNUMBER)"
-
-FunctionEnd
-
-Function leave_serial_function
-
-  !insertmacro UMUI_SERIALNUMBER_GET REGNAME R0
-  !insertmacro UMUI_SERIALNUMBER_GET ORGANISATION R1
-  !insertmacro UMUI_SERIALNUMBER_GET SERIAL R2
-  
-  StrCmp $R0 'Joey' ValidName
-  StrCmp $R0 'Just Joey' ValidName
-  StrCmp $R0 'Tech Stuff' ValidName
-  StrCmp $R0 'Jeremiah' ValidName
-  StrCmp $R0 'Windows Server 2003' ValidName
-  MessageBox MB_OK|MB_ICONEXCLAMATION "Name is invalid. Please verify you have entered the serial number correctly."
-  Abort
-
-  ValidName:
-  StrCmp $R2 'DEV00709353' +3
-    MessageBox MB_OK|MB_ICONEXCLAMATION "Serial Number is invalid. Please verify you have entered the serial number correctly."
-    Abort
-
 FunctionEnd

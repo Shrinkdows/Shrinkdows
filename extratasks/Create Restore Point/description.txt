@@ -1,1 +1,0 @@
-Create a restore point before installing to allow you to revert your system to this current state should anything go wrong.
